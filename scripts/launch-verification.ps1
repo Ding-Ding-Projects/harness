@@ -11,7 +11,7 @@ $archive = [IO.Path]::GetFullPath((Join-Path $root $manifest.resources))
 if (-not (Test-Path -LiteralPath $exe)) { throw 'Build the packaged application before verification.' }
 if (-not (Test-Path -LiteralPath $LowlevelPath)) { throw 'The supplied cheap Lowlevel executable does not exist.' }
 if ($Port -lt 1024 -or $Port -gt 65535) { throw 'Invalid verification port.' }
-if (Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue) { throw 'Verification port is already in use.' }
+if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue) { throw 'Verification port is already in use.' }
 $runRoot = Join-Path $root ('.local/ui-' + [Guid]::NewGuid().ToString('N'))
 $outputRoot = Join-Path $runRoot 'output'
 New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null

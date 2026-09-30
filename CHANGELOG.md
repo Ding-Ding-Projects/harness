@@ -1,5 +1,7 @@
 # Changelog
 
+The local 0.1.0 build has passed protocol fixtures and packaged desktop interaction checks. No hosted release has been published. See `HANDOFF.md` for the precise verification scope.
+
 ## 0.1.0, unreleased
 
 - Initial desktop workspace for locally saved AI conversations and provider profiles.

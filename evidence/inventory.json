@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "records": [
+    {
+      "id": "conversation-dark",
+      "active": true,
+      "path": "evidence/conversation-dark.png",
+      "sourceCommit": "c028c39eb07c55d84dcac937d438a05073d42c46",
+      "artifactSha256": "efd01ac3a348b9fb17f992a1627a0f3ec9646b60d100b73fbabf8693901d0b39",
+      "captureSha256": "8d98b4c904ada66a500c7853f6e7b3390553e0d9fdc4bfd47cc37199fb6eb2cd",
+      "screen": "conversation",
+      "state": "completed-local-fixture",
+      "theme": "dark",
+      "viewportWidth": 1264,
+      "viewportHeight": 785,
+      "scale": 1,
+      "interactionProofId": "conversation",
+      "interactionReceiptSha256": "07ae9c08705dff0f97cd7cf9b8f34ad462ce5c4bf7a16fab819c72145a42b01b",
+      "inspectionStatus": "inspected",
+      "capturedAt": "2026-09-30T18:55:12.319Z"
+    },
+    {
+      "id": "settings-dark",
+      "active": true,
+      "path": "evidence/settings-dark.png",
+      "sourceCommit": "c028c39eb07c55d84dcac937d438a05073d42c46",
+      "artifactSha256": "efd01ac3a348b9fb17f992a1627a0f3ec9646b60d100b73fbabf8693901d0b39",
+      "captureSha256": "dcc43a4612481e3dd052b4348b944a8a33661751200704b3cdec99bc9cf016ed",
+      "screen": "settings",
+      "state": "saved-preferences",
+      "theme": "dark",
+      "viewportWidth": 1264,
+      "viewportHeight": 785,
+      "scale": 1,
+      "interactionProofId": "settings",
+      "interactionReceiptSha256": "07ae9c08705dff0f97cd7cf9b8f34ad462ce5c4bf7a16fab819c72145a42b01b",
+      "inspectionStatus": "inspected",
+      "capturedAt": "2026-09-30T18:55:12.375Z"
+    },
+    {
+      "id": "search-dark",
+      "active": true,
+      "path": "evidence/search-dark.png",
+      "sourceCommit": "c028c39eb07c55d84dcac937d438a05073d42c46",
+      "artifactSha256": "efd01ac3a348b9fb17f992a1627a0f3ec9646b60d100b73fbabf8693901d0b39",
+      "captureSha256": "6f551357f1970f95fb2397f09e306479ea1d0f801efbbc9e8e4570fb55bb0413",
+      "screen": "search",
+      "state": "regex-builder-open",
+      "theme": "dark",
+      "viewportWidth": 1264,
+      "viewportHeight": 785,
+      "scale": 1,
+      "interactionProofId": "search",
+      "interactionReceiptSha256": "07ae9c08705dff0f97cd7cf9b8f34ad462ce5c4bf7a16fab819c72145a42b01b",
+      "inspectionStatus": "inspected",
+      "capturedAt": "2026-09-30T18:55:12.535Z"
+    }
+  ]
+}

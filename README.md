@@ -25,6 +25,7 @@ For development with Node.js 24.19.0:
 
 ```powershell
 npm ci
+node node_modules/electron/install.js
 npm run dev
 ```
 
@@ -39,7 +40,7 @@ npm test
 ## First conversation
 
 1. Open **Providers**, choose a preset, and enter a name, endpoint, model and your own API key. Enter secrets only in the application's password field.
-2. Use **Load models** to discover the models available to your account, or enter an exact model/deployment identifier. Model-list support varies by provider.
+2. Save the profile, then use **Test connection** or reopen it and choose **List models**. Enter an exact model/deployment identifier when listing is unavailable.
 3. Create a conversation, choose the profile and send a prompt. Provider charges may apply. No paid request is issued merely by opening the app.
 4. To use workspace tools, select a folder and explicitly enable tools in settings. Each proposed file write or command requires a separate approval showing what will run.
 5. Stop a run at any time. Export a conversation as Markdown or JSON; saved API keys are never included.
@@ -58,4 +59,16 @@ See [provider documentation](docs/providers/README.md), [security documentation]
 
 No provider account, paid subscription, hosted service, auto-update feed or API key is bundled. Local protocol fixtures establish request parsing and stream behavior; live provider verification requires the user's account and is reported separately. Published releases, runtime captures and complete feature verification are only claimed when linked in `HANDOFF.md`.
 
+Version 0.1.0 is a runnable local desktop foundation. It supports text conversations and four optional workspace tools. Image/audio/file attachments, Bedrock IAM, Vertex OAuth, a hosted update feed, full localization and the broader product feature inventory are not implemented. Navigation and core conversation controls have English, Cantonese and bilingual modes; provider, settings and help copy remains partly English.
+
 Contributors keep credentials out of source, test fixtures, logs and exports, preserve user data, validate privileged inputs, and report observed results rather than inferred success. Repository-local development details are in `AGENTS.md`.
+
+## Verified desktop views
+
+These are original captures of the packaged application with a disposable local fixture. They are not live cloud-model responses. The source commit, hashes and state tuples are recorded in [the evidence inventory](evidence/inventory.json).
+
+![Harness conversation with a completed local streaming response](evidence/conversation-dark.png)
+
+![Harness appearance and model settings in dark theme](evidence/settings-dark.png)
+
+![Harness bounded regular expression builder in dark theme](evidence/search-dark.png)
