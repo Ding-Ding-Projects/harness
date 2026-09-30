@@ -1,6 +1,7 @@
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $root = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot 'file-hash.ps1')
 $manifest = Get-Content -LiteralPath (Join-Path $root 'build-manifest.json') -Raw | ConvertFrom-Json
 $version = $manifest.nodeVersion
 if (-not [Environment]::Is64BitOperatingSystem) { throw 'Harness requires 64-bit Windows.' }
@@ -24,7 +25,7 @@ if (-not $useInstalled) {
     $expected = ($line.Trim() -split '\s+')[0]
     $zip = Join-Path $staging $filename
     Invoke-WebRequest -UseBasicParsing -Uri "$base/$filename" -OutFile $zip
-    if ((Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected.ToLowerInvariant()) { throw 'Pinned Node.js archive checksum mismatch.' }
+    if ((Get-TaskFileHash $zip) -ne $expected.ToLowerInvariant()) { throw 'Pinned Node.js archive checksum mismatch.' }
     Expand-Archive -LiteralPath $zip -DestinationPath $staging
     $extracted = Join-Path $staging "node-v$version-win-x64"
     if ((& (Join-Path $extracted 'node.exe') --version) -ne "v$version") { throw 'Downloaded Node.js version mismatch.' }

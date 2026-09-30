@@ -1,6 +1,7 @@
 param([switch]$Installer, [Parameter(ValueFromRemainingArguments=$true)][string[]]$Options)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot 'file-hash.ps1')
 $silentMode = ($env:SILENT -eq '1') -or (@($Options | Where-Object { $_ -in @('/s', '--silent') }).Count -gt 0)
 $runAfter = ($env:RUN_AFTER_BUILD -eq '1') -or (@($Options | Where-Object { $_ -in @('/run', '--run') }).Count -gt 0)
 $clock = [Diagnostics.Stopwatch]::StartNew()
@@ -16,14 +17,14 @@ try {
   foreach ($relative in @($manifest.executable, $manifest.resources)) {
     $target = Join-Path $root $relative
     if (-not (Test-Path -LiteralPath $target) -or (Get-Item -LiteralPath $target).Length -eq 0) { throw "Missing build output: $relative" }
-    Write-Host "$relative SHA256 $((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash)"
+    Write-Host "$relative SHA256 $(Get-TaskFileHash $target)"
   }
   if ($Installer) {
     $installerRoot = Join-Path $root $manifest.installerDirectory
     foreach ($pattern in @('*Setup.exe', 'RELEASES', '*-full.nupkg')) {
       $files = @(Get-ChildItem -LiteralPath $installerRoot -Filter $pattern)
       if ($files.Count -eq 0) { throw "Missing Squirrel output: $pattern" }
-      foreach ($file in $files) { Write-Host "$($file.Name) $($file.Length) bytes SHA256 $((Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash)" }
+      foreach ($file in $files) { Write-Host "$($file.Name) $($file.Length) bytes SHA256 $(Get-TaskFileHash $file.FullName)" }
     }
     Write-Host 'Squirrel.Windows installer is unsigned. Windows may show an unknown-publisher warning.'
   }

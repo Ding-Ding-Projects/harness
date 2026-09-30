@@ -1,6 +1,7 @@
 param(
   [Parameter(Mandatory=$true)][string]$LowlevelPath,
-  [int]$Port = 43189
+  [int]$Port = 43189,
+  [string]$ProfilePath
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -16,6 +17,11 @@ $outputRoot = Join-Path $runRoot 'output'
 New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
 $desktop = 'HarnessVerification-' + [Guid]::NewGuid().ToString('N')
 $data = Join-Path $runRoot 'profile'
+if ($ProfilePath) {
+  $data = [IO.Path]::GetFullPath($ProfilePath)
+  $ownedRoot = [IO.Path]::GetFullPath((Join-Path $root '.local')) + [IO.Path]::DirectorySeparatorChar
+  if (-not $data.StartsWith($ownedRoot, [StringComparison]::OrdinalIgnoreCase) -or -not (Test-Path -LiteralPath $data -PathType Container)) { throw 'A reused verification profile must exist under the owned .local directory.' }
+}
 $previousData = $env:HARNESS_DATA_DIR
 try {
   $env:HARNESS_DATA_DIR = $data
