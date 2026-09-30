@@ -21,16 +21,18 @@ try {
   $env:HARNESS_DATA_DIR = $data
   $command = '"{0}" --remote-debugging-address=127.0.0.1 --remote-debugging-port={1} --disable-gpu' -f $exe,$Port
   $inputJson = @{ name = $desktop; command = $command } | ConvertTo-Json -Compress
-  $launch = (& $LowlevelPath launch_on_headless_desktop --json $inputJson | Out-String | ConvertFrom-Json)
+  $nativeJson = if ($PSVersionTable.PSVersion.Major -lt 7) { $inputJson.Replace('"', '\"') } else { $inputJson }
+  $launch = (& $LowlevelPath launch_on_headless_desktop --json $nativeJson | Out-String | ConvertFrom-Json)
   if (-not $launch.ok -or -not $launch.pid) { throw 'Cheap Lowlevel launch did not succeed.' }
 } finally { $env:HARNESS_DATA_DIR = $previousData }
 $launchedPid = [int]$launch.pid
 $processInfo = Get-CimInstance Win32_Process -Filter ("ProcessId = " + $launchedPid)
 if (-not $processInfo -or $processInfo.ExecutablePath -ne $exe) { throw 'Launched process identity did not match the selected executable.' }
+$creationDate = & powershell.exe -NoProfile -NonInteractive -Command ('[string](Get-CimInstance Win32_Process -Filter "ProcessId = {0}").CreationDate' -f $launchedPid)
 $expectedUrl = ([uri]($archive.Replace('\','/') + '/dist/renderer/index.html')).AbsoluteUri
 $state = @{
   version = 1; desktop = $desktop; pid = $launchedPid; created = $true; cleaned = $false
-  process = @{ pid = $launchedPid; parentPid = [int]$processInfo.ParentProcessId; creationDate = [string]$processInfo.CreationDate; executablePath = [string]$processInfo.ExecutablePath }
+  process = @{ pid = $launchedPid; parentPid = [int]$processInfo.ParentProcessId; creationDate = [string]$creationDate; executablePath = [string]$processInfo.ExecutablePath }
   runRoot = $runRoot; outputRoot = $outputRoot; lowlevelPath = $LowlevelPath
   cdp = @{ port = $Port; expectedUrl = $expectedUrl }
   executableSha256 = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash
@@ -41,7 +43,8 @@ $state | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $statePath -Encoding
 $deadline = [DateTime]::UtcNow.AddSeconds(30)
 do {
   $query = @{ name = $desktop } | ConvertTo-Json -Compress
-  $windows = (& $LowlevelPath list_headless_windows --json $query | Out-String | ConvertFrom-Json)
+  $nativeQuery = if ($PSVersionTable.PSVersion.Major -lt 7) { $query.Replace('"', '\"') } else { $query }
+  $windows = (& $LowlevelPath list_headless_windows --json $nativeQuery | Out-String | ConvertFrom-Json)
   $matches = @($windows.windows | Where-Object { $_.process_id -eq $launchedPid -and $_.class -eq 'Chrome_WidgetWin_1' -and $_.width -gt 0 -and $_.height -gt 0 })
   if ($matches.Count -eq 1) { break }
   Start-Sleep -Milliseconds 300

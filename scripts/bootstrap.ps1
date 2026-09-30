@@ -38,5 +38,8 @@ try {
   Write-Host 'Installing locked project dependencies.'
   & npm.cmd ci --no-fund
   if ($LASTEXITCODE -ne 0) { throw "npm ci failed with exit code $LASTEXITCODE" }
+  # Recent Electron packages require explicit runtime installation.
+  & node.exe (Join-Path $root 'node_modules/electron/install.js')
+  if ($LASTEXITCODE -ne 0) { throw "Desktop runtime installation failed with exit code $LASTEXITCODE" }
 } finally { Pop-Location }
 Write-Host 'Dependencies ready.'
