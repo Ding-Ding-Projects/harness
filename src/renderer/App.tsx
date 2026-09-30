@@ -33,7 +33,7 @@ import type {
   ApprovalRequest,
 } from "../shared/types";
 import { PROVIDER_PRESETS } from "../providers/catalog";
-import { SearchField, emptyRule, matchesRule } from "./Search";
+import { SearchField, emptyRule, useSearchMatches } from "./Search";
 import { copy } from "./copy";
 
 type Page = "chats" | "providers" | "settings" | "help";
@@ -246,6 +246,25 @@ export function App() {
       setState(next);
     });
   };
+  const conversationSearch = useSearchMatches(
+    (state?.conversations || []).map((c) => c.title),
+    rule,
+  );
+  const commandLabels = state
+    ? (
+        [
+          "newChat",
+          "chats",
+          "providers",
+          "settings",
+          "help",
+          "chooseWorkspace",
+        ] as const
+      )
+        .map((key) => copy(state.settings, key))
+        .concat("Focus composer")
+    : [];
+  const commandSearch = useSearchMatches(commandLabels, paletteRule);
   if (!state)
     return (
       <main className="boot">
@@ -340,10 +359,15 @@ export function App() {
           ))}
         </nav>
         <div className="sidebar-label">RECENT CONVERSATIONS</div>
-        <SearchField label={t("search")} rule={rule} onChange={setRule} />
+        <SearchField
+          label={t("search")}
+          rule={rule}
+          onChange={setRule}
+          error={conversationSearch.error}
+        />
         <div className="conversation-list">
           {state.conversations
-            .filter((c) => matchesRule(c.title, rule))
+            .filter((c, index) => conversationSearch.matches[index])
             .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
             .map((c) => (
               <button
@@ -885,11 +909,12 @@ export function App() {
           <SearchField
             label="Find a command"
             rule={paletteRule}
+            error={commandSearch.error}
             onChange={setPaletteRule}
           />
           <div className="palette-list">
             {commands
-              .filter((c) => matchesRule(c.label, paletteRule))
+              .filter((c, index) => commandSearch.matches[index])
               .map((c) => (
                 <button
                   key={c.label}
