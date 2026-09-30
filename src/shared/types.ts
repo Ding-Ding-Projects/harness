@@ -7,9 +7,11 @@ export interface ProviderPreset extends Omit<ProviderProfile, 'id' | 'hasKey'> {
   id: string; description: string; requiresKey: boolean;
 }
 export interface ToolCall { id: string; name: string; arguments: string; }
+export interface ProviderContinuation { protocol: Protocol; items: unknown[]; }
 export interface ChatMessage {
   id: string; role: 'system' | 'user' | 'assistant' | 'tool'; content: string;
   createdAt: string; toolCalls?: ToolCall[]; toolCallId?: string; name?: string;
+  continuation?: ProviderContinuation;
 }
 export interface Usage { inputTokens: number; outputTokens: number; }
 export interface Conversation {
@@ -35,6 +37,7 @@ export interface ProviderRequest {
 export type ProviderEvent =
   | { type: 'text'; text: string }
   | { type: 'tool-call'; call: ToolCall }
+  | { type: 'continuation'; continuation: ProviderContinuation }
   | { type: 'usage'; usage: Usage };
 export interface ApprovalRequest {
   id: string; runId: string; tool: string; summary: string; detail: string;
