@@ -16,7 +16,7 @@ for (const [file, expected] of Object.entries({
   'dist/renderer/index.html': receipt.htmlSha256,
   ...receipt.files,
 })) {
-  if (digest(extractFile(archivePath, file)) !== expected) throw new Error(`Packaged build mismatch: ${file}`);
+  if (digest(extractFile(archivePath, path.normalize(file))) !== expected) throw new Error(`Packaged build mismatch: ${file}`);
 }
 const entries = listPackage(archivePath).map(value => value.replaceAll('\\', '/'));
 for (const entry of entries) {
