@@ -1,0 +1,20 @@
+{
+  "name": "harness-desktop",
+  "productName": "Harness",
+  "version": "0.1.0",
+  "description": "A local-first desktop workspace for AI providers and approved workspace tools.",
+  "author": "Harness contributors",
+  "license": "MIT",
+  "private": true,
+  "main": "dist/main.cjs",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "start": "electron .",
+    "package": "npm run build && electron-forge package",
+    "make": "npm run build && electron-forge make"
+  },
+  "config": { "forge": "./forge.config.cjs" }
+}
