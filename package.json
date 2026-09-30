@@ -13,8 +13,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "start": "electron .",
-    "package": "npm run build && electron-forge package",
-    "make": "npm run build && electron-forge make"
+    "package": "npm run build && electron-forge package --platform=win32 --arch=x64",
+    "make": "npm run build && electron-forge make --platform=win32 --arch=x64"
   },
   "config": {
     "forge": "./forge.config.cjs"

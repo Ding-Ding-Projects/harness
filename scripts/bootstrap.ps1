@@ -1,4 +1,5 @@
 $ErrorActionPreference = 'Stop'
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $root = Split-Path -Parent $PSScriptRoot
 $manifest = Get-Content -LiteralPath (Join-Path $root 'build-manifest.json') -Raw | ConvertFrom-Json
 $version = $manifest.nodeVersion
@@ -8,7 +9,7 @@ $nodeRoot = Join-Path $tools "node-v$version-win-x64"
 $nodeExe = Join-Path $nodeRoot 'node.exe'
 $currentNode = Get-Command node.exe -ErrorAction SilentlyContinue
 $useInstalled = $false
-if ($currentNode) { $useInstalled = ((& $currentNode.Source --version) -eq "v$version") }
+if ($currentNode) { $useInstalled = ((& $currentNode.Source --version) -eq "v$version") -and ((& $currentNode.Source -p 'process.arch') -eq 'x64') }
 if (-not $useInstalled) {
   if (-not (Test-Path -LiteralPath $nodeExe)) {
     New-Item -ItemType Directory -Path $tools -Force | Out-Null
@@ -29,7 +30,7 @@ if (-not $useInstalled) {
     if ((& (Join-Path $extracted 'node.exe') --version) -ne "v$version") { throw 'Downloaded Node.js version mismatch.' }
     Move-Item -LiteralPath $extracted -Destination $nodeRoot
   }
-  if ((& $nodeExe --version) -ne "v$version") { throw 'Cached Node.js version mismatch.' }
+  if ((& $nodeExe --version) -ne "v$version" -or (& $nodeExe -p 'process.arch') -ne 'x64') { throw 'Cached Node.js version or architecture mismatch.' }
   $env:PATH = "$nodeRoot;$env:PATH"
 }
 Push-Location $root
