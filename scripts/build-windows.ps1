@@ -11,6 +11,8 @@ try {
   $command = if ($Installer) { $manifest.installerCommand } else { $manifest.packageCommand }
   & npm.cmd run $command
   if ($LASTEXITCODE -ne 0) { throw "Build failed with exit code $LASTEXITCODE" }
+  & node.exe (Join-Path $PSScriptRoot 'check-package.mjs')
+  if ($LASTEXITCODE -ne 0) { throw 'Packaged payload verification failed.' }
   foreach ($relative in @($manifest.executable, $manifest.resources)) {
     $target = Join-Path $root $relative
     if (-not (Test-Path -LiteralPath $target) -or (Get-Item -LiteralPath $target).Length -eq 0) { throw "Missing build output: $relative" }

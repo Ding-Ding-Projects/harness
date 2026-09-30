@@ -1,6 +1,7 @@
 import { build as bundle } from 'esbuild';
 import { build as vite } from 'vite';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import './generate-icon.mjs';
@@ -12,6 +13,15 @@ await bundle({ entryPoints: ['src/preload/index.ts'], outfile: 'dist/preload.cjs
   platform: 'node', format: 'cjs', target: 'node22', external: ['electron'], sourcemap: false });
 await vite();
 const hash = async file => createHash('sha256').update(await readFile(file)).digest('hex');
+async function inventory(directory) {
+  const result = {};
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const file = path.posix.join(directory, entry.name);
+    if (entry.isDirectory()) Object.assign(result, await inventory(file));
+    else if (entry.isFile()) result[file] = await hash(file);
+  }
+  return result;
+}
 let sourceCommit = null;
 let dirty = null;
 try {
@@ -23,5 +33,6 @@ try {
 await writeFile('dist/build-receipt.json', JSON.stringify({ version: 1, sourceCommit, dirty,
   builtAt: new Date().toISOString(), mainSha256: await hash('dist/main.cjs'),
   preloadSha256: await hash('dist/preload.cjs'),
-  htmlSha256: await hash('dist/renderer/index.html') }, null, 2));
+  htmlSha256: await hash('dist/renderer/index.html'),
+  files: { ...await inventory('dist/renderer'), ...await inventory('assets') } }, null, 2));
 console.log(`Built Harness from ${sourceCommit ?? 'source archive'}${dirty ? ' (with local changes)' : ''}.`);
