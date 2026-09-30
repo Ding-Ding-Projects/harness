@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "nodeVersion": "24.19.0",
+  "platform": "win32",
+  "architecture": "x64",
+  "packageCommand": "package",
+  "installerCommand": "make",
+  "executable": "out/Harness-win32-x64/Harness.exe",
+  "resources": "out/Harness-win32-x64/resources/app.asar",
+  "installerDirectory": "out/make/squirrel.windows/x64"
+}

@@ -24,7 +24,7 @@ export interface Settings {
 }
 export interface AppState {
   profiles: ProviderProfile[]; conversations: Conversation[]; settings: Settings;
-  workspace: string | null; vaultAvailable: boolean; version: string;
+  workspace: string | null; vaultAvailable: boolean; version: string; builtAt?: string;
 }
 export interface ToolDefinition { name: string; description: string; parameters: Record<string, unknown>; }
 export interface ProviderRequest {
