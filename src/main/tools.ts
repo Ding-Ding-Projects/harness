@@ -304,9 +304,18 @@ export class StreamRedactor {
   }
 }
 export function assertNoSecret(value: unknown, secrets: string[]): void {
-  const serialized = JSON.stringify(value);
-  if (secrets.some((secret) => secret && serialized.includes(secret)))
-    throw new Error(
-      "Provider metadata contained protected credential material",
-    );
+  const stack: unknown[] = [value];
+  let visited = 0;
+  while (stack.length) {
+    if (++visited > 100000) throw new Error("Provider metadata is too complex");
+    const item = stack.pop();
+    if (typeof item === "string") {
+      if (secrets.some((secret) => secret && item.includes(secret)))
+        throw new Error(
+          "Provider metadata contained protected credential material",
+        );
+    } else if (item && typeof item === "object") {
+      for (const [name, child] of Object.entries(item)) stack.push(name, child);
+    }
+  }
 }

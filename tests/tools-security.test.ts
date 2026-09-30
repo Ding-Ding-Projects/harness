@@ -95,4 +95,14 @@ test("stream redaction blocks credentials split across chunks and opaque metadat
   assert.throws(() =>
     assertNoSecret({ nested: { signature: secret } }, [secret]),
   );
+  const escapedSecret = 'synthetic-"-credential';
+  assert.throws(() =>
+    assertNoSecret({ nested: { value: escapedSecret } }, [escapedSecret]),
+  );
+  assert.throws(() =>
+    assertNoSecret({ [escapedSecret]: "value" }, [escapedSecret]),
+  );
+  assert.doesNotThrow(() =>
+    assertNoSecret({ signature: "unrelated opaque value" }, [secret]),
+  );
 });

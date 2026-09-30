@@ -27,6 +27,10 @@ import type {
 let win: BrowserWindow;
 let store: Store;
 const runs = new Map<string, AbortController>();
+const tasks = new Map<string, Promise<void>>();
+let closing = false;
+let closeReady = false;
+let builtAt: string | undefined;
 const pending = new Map<
   string,
   {
@@ -118,6 +122,7 @@ async function run(
           )
             throw new Error("Tool limit exceeded");
           assertNoSecret(event.call, [secret]);
+          assertNoSecret(JSON.parse(event.call.arguments), [secret]);
           assistant.toolCalls.push(event.call);
         } else if (event.type === "continuation") {
           if (JSON.stringify(event.continuation).length > 1000000)
@@ -240,6 +245,7 @@ function register() {
       })),
       vaultAvailable: safeStorage.isEncryptionAvailable(),
       version: app.getVersion(),
+      builtAt,
     }),
     saveProfile: async (v, apiKey) => {
       const p = profile(v),
@@ -310,7 +316,6 @@ function register() {
     saveSettings: async (v) => {
       const s = settings(v);
       if (s.toolsEnabled && !store.state.settings.toolsEnabled) {
-        p.confirming = true;
         const choice = await dialog.showMessageBox(win, {
           type: "warning",
           buttons: ["Keep disabled", "Enable workspace tools"],
@@ -327,6 +332,7 @@ function register() {
       return s;
     },
     send: async (v: SendRequest) => {
+      if (closing) throw new Error("Application is closing");
       const c = conversation(v?.conversationId);
       getProfile(v.profileId);
       if (c.messages.length && c.profileId !== v.profileId)
@@ -354,21 +360,23 @@ function register() {
         c.messages.pop();
         throw e;
       }
-      setTimeout(
-        () =>
-          void run(runId, c, v.profileId, controller).catch(() => {
-            runs.delete(runId);
-            deny(runId);
-            emit({
-              type: "error",
-              runId,
-              conversationId: c.id,
-              message:
-                "Local state could not be saved. Export this conversation before closing.",
-            });
-          }),
-        25,
-      );
+      const task = new Promise<void>((resolve) => setTimeout(resolve, 25))
+        .then(() => run(runId, c, v.profileId, controller))
+        .catch(() => {
+          runs.delete(runId);
+          deny(runId);
+          emit({
+            type: "error",
+            runId,
+            conversationId: c.id,
+            message:
+              "Local state could not be saved. Export this conversation before closing.",
+          });
+        })
+        .finally(() => {
+          tasks.delete(runId);
+        });
+      tasks.set(runId, task);
       return { runId };
     },
     cancel: async (id) => {
@@ -516,10 +524,25 @@ if (squirrel) {
           process.env.HARNESS_DATA_DIR || app.getPath("userData"),
         );
         await store.load();
+        try {
+          const receipt = JSON.parse(
+            await fs.readFile(
+              path.join(__dirname, "build-receipt.json"),
+              "utf8",
+            ),
+          );
+          if (
+            typeof receipt.builtAt === "string" &&
+            Number.isFinite(Date.parse(receipt.builtAt))
+          )
+            builtAt = receipt.builtAt;
+        } catch {
+          /* Development mode has no packaged build receipt. */
+        }
         win = new BrowserWindow({
           width: 1280,
           height: 850,
-          minWidth: 800,
+          minWidth: 860,
           minHeight: 600,
           title: "Harness",
           icon: path.join(app.getAppPath(), "assets/icon.png"),
@@ -569,6 +592,32 @@ if (squirrel) {
             }),
         );
         register();
+        win.on("close", (event) => {
+          if (closeReady) return;
+          event.preventDefault();
+          if (closing) return;
+          closing = true;
+          for (const [id, controller] of runs) {
+            controller.abort();
+            deny(id);
+          }
+          void (async () => {
+            try {
+              await Promise.allSettled([...tasks.values()]);
+              await store.save();
+              closeReady = true;
+              win.close();
+            } catch {
+              closing = false;
+              await dialog.showMessageBox(win, {
+                type: "error",
+                message: "Conversation could not be saved",
+                detail:
+                  "The window will remain open. Export your conversation before trying to close again.",
+              });
+            }
+          })();
+        });
         const dev = process.env.HARNESS_DEV_URL;
         if (dev) {
           const url = new URL(dev);
