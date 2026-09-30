@@ -20,6 +20,15 @@ const server = http.createServer(async (req, res) => {
   const last = payload.messages?.at(-1);
   if (String(last?.content).includes('simulate-error')) { res.writeHead(429).end('Fixture rate limit.'); return; }
   res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' });
+  if (last?.role === 'user' && String(last.content).includes('[tool]') && payload.tools?.length) {
+    res.write(`data: ${JSON.stringify({ choices: [{ index: 0, delta: { tool_calls: [{ index: 0,
+      id: 'fixture-call-1', type: 'function', function: { name: 'write_file',
+        arguments: JSON.stringify({ path: 'approved-note.txt', content: 'Created by the approved local verification fixture.\n' }) }
+    }] }, finish_reason: null }] })}\n\n`);
+    res.write(`data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: 'tool_calls' }] })}\n\n`);
+    res.end('data: [DONE]\n\n');
+    return;
+  }
   const pieces = ['This is a **local verification fixture**, ', 'not a cloud model.\n\n',
     'Streaming, conversation persistence, and Markdown rendering are connected.\n\n',
     '```typescript\nconst workspace = "ready";\n```\n\n',
