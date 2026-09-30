@@ -44,6 +44,7 @@ export interface ApprovalRequest {
 }
 export type RunEvent =
   | { type: 'started'; runId: string; conversationId: string }
+  | { type: 'assistant'; runId: string; conversationId: string; messageId: string; conversation: Conversation }
   | { type: 'text'; runId: string; conversationId: string; text: string }
   | { type: 'status'; runId: string; conversationId: string; message: string }
   | { type: 'approval'; runId: string; conversationId: string; approval: ApprovalRequest }

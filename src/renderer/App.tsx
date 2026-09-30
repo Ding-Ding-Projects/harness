@@ -53,6 +53,7 @@ export function App() {
     text: string;
     status: string;
     started: number;
+    messageId?: string;
   } | null>(null);
   const [approval, setApproval] = useState<ApprovalRequest | null>(null),
     [details, setDetails] = useState(false),
@@ -93,6 +94,27 @@ export function App() {
           status: "Generating",
           started: Date.now(),
         });
+      if (event.type === "assistant") {
+        setRun((r) =>
+          r?.id === event.runId
+            ? {
+                ...r,
+                messageId: event.messageId,
+                text: "",
+                status: "Generating",
+              }
+            : r,
+        );
+        setState(
+          (s) =>
+            s && {
+              ...s,
+              conversations: s.conversations.map((c) =>
+                c.id === event.conversationId ? event.conversation : c,
+              ),
+            },
+        );
+      }
       if (event.type === "text")
         setRun((r) =>
           r?.id === event.runId ? { ...r, text: r.text + event.text } : r,
@@ -583,7 +605,14 @@ export function App() {
                 ) : (
                   <div className="message-stack">
                     {active?.messages
-                      .filter((m) => m.role !== "system")
+                      .filter(
+                        (m) =>
+                          m.role !== "system" &&
+                          !(
+                            run?.conversationId === activeId &&
+                            m.id === run.messageId
+                          ),
+                      )
                       .map((m) => (
                         <article className={`message ${m.role}`} key={m.id}>
                           <div className="avatar">

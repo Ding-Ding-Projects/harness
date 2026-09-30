@@ -93,6 +93,13 @@ async function run(
           import("../shared/types").ProviderContinuation | undefined,
       };
       c.messages.push(assistant);
+      emit({
+        type: "assistant",
+        runId,
+        conversationId: c.id,
+        messageId: assistant.id,
+        conversation: c,
+      });
       const redactor = new StreamRedactor([secret]);
       flushPartial = () => {
         const tail = redactor.flush();
