@@ -31,6 +31,29 @@ const tasks = new Map<string, Promise<void>>();
 let closing = false;
 let closeReady = false;
 let builtAt: string | undefined;
+async function finishAndQuit() {
+  if (closing) return;
+  closing = true;
+  for (const [id, controller] of runs) {
+    controller.abort();
+    deny(id);
+  }
+  try {
+    await Promise.allSettled([...tasks.values()]);
+    await store.save();
+    closeReady = true;
+    app.quit();
+  } catch {
+    closing = false;
+    if (win && !win.isDestroyed())
+      await dialog.showMessageBox(win, {
+        type: "error",
+        message: "Conversation could not be saved",
+        detail:
+          "The window will remain open. Export your conversation before trying to close again.",
+      });
+  }
+}
 const pending = new Map<
   string,
   {
@@ -42,7 +65,8 @@ const pending = new Map<
   }
 >();
 const emit = (event: RunEvent) => {
-  if (!win.isDestroyed()) win.webContents.send("harness:event", event);
+  if (win && !win.isDestroyed() && !win.webContents.isDestroyed())
+    win.webContents.send("harness:event", event);
 };
 const conversation = (id: unknown) => {
   const c = store.state.conversations.find((c) => c.id === text(id, 100));
@@ -101,6 +125,7 @@ async function run(
         conversation: c,
       });
       const redactor = new StreamRedactor([secret]);
+      let savedAt = 0;
       flushPartial = () => {
         const tail = redactor.flush();
         assistant.content += tail;
@@ -122,6 +147,10 @@ async function run(
           const chunk = redactor.push(event.text);
           assistant.content += chunk;
           emit({ type: "text", runId, conversationId: c.id, text: chunk });
+          if (Date.now() - savedAt > 750) {
+            await store.save();
+            savedAt = Date.now();
+          }
         } else if (event.type === "tool-call") {
           if (
             event.call.arguments.length > 200000 ||
@@ -561,6 +590,12 @@ if (squirrel) {
             webSecurity: true,
           },
         });
+        const frameSize = win.getSize(),
+          clientSize = win.getContentSize();
+        win.setMinimumSize(
+          860 + frameSize[0] - clientSize[0],
+          600 + frameSize[1] - clientSize[1],
+        );
         win.webContents.setWindowOpenHandler(({ url }) => {
           try {
             const target = new URL(url);
@@ -599,31 +634,15 @@ if (squirrel) {
             }),
         );
         register();
+        app.on("before-quit", (event) => {
+          if (closeReady) return;
+          event.preventDefault();
+          void finishAndQuit();
+        });
         win.on("close", (event) => {
           if (closeReady) return;
           event.preventDefault();
-          if (closing) return;
-          closing = true;
-          for (const [id, controller] of runs) {
-            controller.abort();
-            deny(id);
-          }
-          void (async () => {
-            try {
-              await Promise.allSettled([...tasks.values()]);
-              await store.save();
-              closeReady = true;
-              win.close();
-            } catch {
-              closing = false;
-              await dialog.showMessageBox(win, {
-                type: "error",
-                message: "Conversation could not be saved",
-                detail:
-                  "The window will remain open. Export your conversation before trying to close again.",
-              });
-            }
-          })();
+          void finishAndQuit();
         });
         const dev = process.env.HARNESS_DEV_URL;
         if (dev) {
@@ -649,7 +668,10 @@ if (squirrel) {
         );
         app.quit();
       });
-    app.on("window-all-closed", () => app.quit());
+    app.on("window-all-closed", () => {
+      if (closeReady) app.quit();
+      else void finishAndQuit();
+    });
     app.on("second-instance", () => {
       if (win && !win.isDestroyed()) {
         if (win.isMinimized()) win.restore();

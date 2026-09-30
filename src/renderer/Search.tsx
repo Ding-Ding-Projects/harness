@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Search as SearchIcon, Regex, X } from "lucide-react";
 export interface SearchRule {
   text: string;
@@ -65,9 +66,32 @@ export function SearchField({
 }) {
   const [open, setOpen] = useState(false),
     [sample, setSample] = useState("Example text");
+  const wrapper = useRef<HTMLDivElement>(null);
+  const [placement, setPlacement] = useState({ top: 16, left: 16 });
+  useEffect(() => {
+    if (!open) return;
+    const place = () => {
+      const rect = wrapper.current!.getBoundingClientRect();
+      const height = Math.min(560, innerHeight - 32);
+      setPlacement({
+        top: Math.max(16, Math.min(rect.bottom + 8, innerHeight - height - 16)),
+        left: Math.max(16, Math.min(rect.left, innerWidth - 346)),
+      });
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("keydown", escape);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("keydown", escape);
+    };
+  }, [open]);
   const result = useSearchMatches([sample], rule);
   return (
-    <div className="search-wrap">
+    <div className="search-wrap" ref={wrapper}>
       <div className="search">
         <SearchIcon size={17} />
         <input
@@ -86,89 +110,94 @@ export function SearchField({
         </button>
       </div>
       {error && <small role="status">{error}</small>}
-      {open && (
-        <div
-          className="regex-popover"
-          role="dialog"
-          aria-label="Regular expression builder"
-        >
-          <div className="section-heading">
-            <strong>Regex builder</strong>
-            <button
-              aria-label="Close regex builder"
-              onClick={() => setOpen(false)}
-            >
-              <X size={18} />
-            </button>
-          </div>
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={rule.regex}
-              onChange={(e) => onChange({ ...rule, regex: e.target.checked })}
-            />
-            Use regular expression
-          </label>
-          <label>
-            Expression
-            <input
-              value={rule.text}
-              maxLength={256}
-              onChange={(e) =>
-                onChange({ ...rule, text: e.target.value, regex: true })
-              }
-            />
-          </label>
-          <div className="button-row">
-            {[
-              { name: "Starts with", value: "^" },
-              { name: "Ends with", value: "$" },
-              { name: "Any character", value: "." },
-              { name: "Digit", value: "\\d" },
-            ].map((item) => (
+      {open &&
+        createPortal(
+          <div
+            className="regex-popover"
+            role="dialog"
+            aria-label="Regular expression builder"
+            style={placement}
+          >
+            <div className="section-heading">
+              <strong>Regex builder</strong>
               <button
-                key={item.name}
-                onClick={() =>
-                  onChange({
-                    ...rule,
-                    text: (rule.text + item.value).slice(0, 256),
-                    regex: true,
-                  })
-                }
+                aria-label="Close regex builder"
+                onClick={() => setOpen(false)}
               >
-                {item.name}
+                <X size={18} />
               </button>
-            ))}
-          </div>
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={rule.flags.includes("i")}
-              onChange={(e) =>
-                onChange({ ...rule, flags: e.target.checked ? "i" : "" })
-              }
-            />
-            Ignore case
-          </label>
-          <label>
-            Sample text
-            <input
-              value={sample}
-              maxLength={1000}
-              onChange={(e) => setSample(e.target.value)}
-            />
-          </label>
-          <small role="status">
-            {result.error ||
-              (result.matches[0] ? "Sample matches" : "Sample does not match")}
-          </small>
-          <small>
-            Patterns run in an isolated worker with a 150ms limit. Plain text is
-            the default. ^ anchors the start; $ anchors the end; . matches a
-            character.
-          </small>
-        </div>
-      )}
+            </div>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={rule.regex}
+                onChange={(e) => onChange({ ...rule, regex: e.target.checked })}
+              />
+              Use regular expression
+            </label>
+            <label>
+              Expression
+              <input
+                value={rule.text}
+                maxLength={256}
+                onChange={(e) =>
+                  onChange({ ...rule, text: e.target.value, regex: true })
+                }
+              />
+            </label>
+            <div className="button-row">
+              {[
+                { name: "Starts with", value: "^" },
+                { name: "Ends with", value: "$" },
+                { name: "Any character", value: "." },
+                { name: "Digit", value: "\\d" },
+              ].map((item) => (
+                <button
+                  key={item.name}
+                  onClick={() =>
+                    onChange({
+                      ...rule,
+                      text: (rule.text + item.value).slice(0, 256),
+                      regex: true,
+                    })
+                  }
+                >
+                  {item.name}
+                </button>
+              ))}
+            </div>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={rule.flags.includes("i")}
+                onChange={(e) =>
+                  onChange({ ...rule, flags: e.target.checked ? "i" : "" })
+                }
+              />
+              Ignore case
+            </label>
+            <label>
+              Sample text
+              <input
+                value={sample}
+                maxLength={1000}
+                onChange={(e) => setSample(e.target.value)}
+              />
+            </label>
+            <small role="status">
+              {result.error ||
+                (result.matches[0]
+                  ? "Sample matches"
+                  : "Sample does not match")}
+            </small>
+            <small>
+              Patterns run in an isolated worker with a 150ms limit. Plain text
+              is the default. ^ anchors the start; $ anchors the end; . matches
+              a character.
+            </small>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
