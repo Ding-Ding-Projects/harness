@@ -3,7 +3,13 @@ import assert from "node:assert/strict";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { contained, executeTool, redact } from "../src/main/tools";
+import {
+  contained,
+  executeTool,
+  redact,
+  StreamRedactor,
+  assertNoSecret,
+} from "../src/main/tools";
 test("workspace rejects traversal, symlinks, hardlinks and Windows aliases", async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "harness-tools-"));
   try {
@@ -72,5 +78,21 @@ test("public tool output redacts known and recognizable credentials", () => {
   assert.equal(
     redact("fixture-key api_key=secret", ["fixture-key"]),
     "[REDACTED] api_key=[REDACTED]",
+  );
+});
+
+test("stream redaction blocks credentials split across chunks and opaque metadata", () => {
+  const secret = "synthetic-secret-123";
+  const redactor = new StreamRedactor([secret]);
+  const output =
+    redactor.push("start synthetic-") +
+    redactor.push("secret-123 finish") +
+    redactor.flush();
+  assert.equal(output, "start [REDACTED] finish");
+  assert.equal(output.includes(secret), false);
+  const aborted = new StreamRedactor([secret]);
+  assert.equal(aborted.push("synthetic-") + aborted.flush(), "[REDACTED]");
+  assert.throws(() =>
+    assertNoSecret({ nested: { signature: secret } }, [secret]),
   );
 });

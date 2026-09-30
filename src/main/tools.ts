@@ -281,3 +281,32 @@ export async function executeTool(
   } else throw new Error("Unknown tool");
   return redact(result, secrets).slice(0, 65536);
 }
+export class StreamRedactor {
+  private pending = "";
+  constructor(private readonly secrets: string[]) {}
+  push(chunk: string): string {
+    this.pending += chunk;
+    for (const secret of this.secrets)
+      if (secret) this.pending = this.pending.split(secret).join("[REDACTED]");
+    let retain = 0;
+    for (const secret of this.secrets)
+      for (let n = 1; n < secret.length && n <= this.pending.length; n++)
+        if (this.pending.endsWith(secret.slice(0, n)))
+          retain = Math.max(retain, n);
+    const safe = this.pending.slice(0, this.pending.length - retain);
+    this.pending = this.pending.slice(this.pending.length - retain);
+    return safe;
+  }
+  flush(): string {
+    const remaining = this.pending ? "[REDACTED]" : "";
+    this.pending = "";
+    return remaining;
+  }
+}
+export function assertNoSecret(value: unknown, secrets: string[]): void {
+  const serialized = JSON.stringify(value);
+  if (secrets.some((secret) => secret && serialized.includes(secret)))
+    throw new Error(
+      "Provider metadata contained protected credential material",
+    );
+}

@@ -11,7 +11,12 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { Store, profile, settings, text, imported } from "./store";
-import { executeTool, definitions, redact } from "./tools";
+import {
+  executeTool,
+  definitions,
+  StreamRedactor,
+  assertNoSecret,
+} from "./tools";
 import { streamProvider, listModels } from "../providers/index";
 import type {
   RunEvent,
@@ -28,6 +33,7 @@ const pending = new Map<
     runId: string;
     summary: string;
     detail: string;
+    confirming?: boolean;
     resolve: (allow: boolean) => void;
   }
 >();
@@ -67,6 +73,7 @@ async function run(
   const runSettings = { ...store.state.settings };
   const workspace = store.state.workspace;
   emit({ type: "started", runId, conversationId: c.id });
+  let flushPartial: (() => void) | undefined;
   try {
     const p = getProfile(profileId),
       secret = key(p.id);
@@ -82,6 +89,13 @@ async function run(
           import("../shared/types").ProviderContinuation | undefined,
       };
       c.messages.push(assistant);
+      const redactor = new StreamRedactor([secret]);
+      flushPartial = () => {
+        const tail = redactor.flush();
+        assistant.content += tail;
+        if (tail)
+          emit({ type: "text", runId, conversationId: c.id, text: tail });
+      };
       for await (const event of streamProvider({
         profile: p,
         apiKey: secret,
@@ -94,7 +108,7 @@ async function run(
       })) {
         if (signal.aborted) break;
         if (event.type === "text") {
-          const chunk = redact(event.text, [secret]);
+          const chunk = redactor.push(event.text);
           assistant.content += chunk;
           emit({ type: "text", runId, conversationId: c.id, text: chunk });
         } else if (event.type === "tool-call") {
@@ -103,10 +117,12 @@ async function run(
             assistant.toolCalls.length >= 20
           )
             throw new Error("Tool limit exceeded");
+          assertNoSecret(event.call, [secret]);
           assistant.toolCalls.push(event.call);
         } else if (event.type === "continuation") {
           if (JSON.stringify(event.continuation).length > 1000000)
             throw new Error("Continuation too large");
+          assertNoSecret(event.continuation, [secret]);
           assistant.continuation = event.continuation;
         } else if (event.type === "usage") {
           const u = c.usage || { inputTokens: 0, outputTokens: 0 };
@@ -116,6 +132,8 @@ async function run(
           };
         }
       }
+      flushPartial();
+      flushPartial = undefined;
       c.updatedAt = new Date().toISOString();
       await store.save();
       if (signal.aborted) {
@@ -183,6 +201,8 @@ async function run(
         });
     }
   } catch (e) {
+    flushPartial?.();
+    flushPartial = undefined;
     const last = c.messages.at(-1);
     if (last?.role === "assistant") {
       delete last.toolCalls;
@@ -290,6 +310,7 @@ function register() {
     saveSettings: async (v) => {
       const s = settings(v);
       if (s.toolsEnabled && !store.state.settings.toolsEnabled) {
+        p.confirming = true;
         const choice = await dialog.showMessageBox(win, {
           type: "warning",
           buttons: ["Keep disabled", "Enable workspace tools"],
@@ -359,12 +380,13 @@ function register() {
       text(id, 100);
       if (typeof allow !== "boolean") throw new Error("Invalid approval");
       const p = pending.get(id);
-      if (!p) return;
+      if (!p || p.confirming) return;
       if (!allow) {
         pending.delete(id);
         p.resolve(false);
         return;
       }
+      p.confirming = true;
       const choice = await dialog.showMessageBox(win, {
         type: "warning",
         buttons: ["Deny", "Allow this exact action"],
