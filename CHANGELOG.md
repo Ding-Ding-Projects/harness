@@ -1,5 +1,10 @@
 # Changelog
 
+## Source publication
+
+- Published source to the public `Ding-Ding-Projects/harness` repository.
+- Preserved the verified desktop build state and recorded the unfinished product website separately from the final screenshot gallery.
+
 The local 0.1.0 build has passed protocol fixtures and packaged desktop interaction checks. No hosted release has been published. See `HANDOFF.md` for the precise verification scope.
 
 ## 0.1.0, unreleased
