@@ -6,3 +6,4 @@
 - [Current verification and handoff](../HANDOFF.md)
 - [Roadmap](../ROADMAP.md)
 - [Desktop evidence inventory](../evidence/README.md)
+- [Source publication and distribution status](distribution/README.md)

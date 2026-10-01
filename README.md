@@ -67,6 +67,8 @@ Contributors keep credentials out of source, test fixtures, logs and exports, pr
 
 These are original captures of the packaged application with a disposable local fixture. They are not live cloud-model responses. The source commit, hashes and state tuples are recorded in [the evidence inventory](evidence/inventory.json).
 
+Explore the [public evidence gallery](https://ding-ding-projects.github.io/harness-gallery/). Its three original PNGs and provenance manifest were verified through anonymous HTTP requests. The gallery is separate from the requested product website, which remains unfinished. See [distribution status](docs/distribution/README.md).
+
 ![Harness conversation with a completed local streaming response](evidence/conversation-dark.png)
 
 ![Harness appearance and model settings in dark theme](evidence/settings-dark.png)

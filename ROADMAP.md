@@ -15,6 +15,7 @@
 
 - [ ] Verify live providers with user-supplied accounts when authorized.
 - [x] Publish the source to the public Ding-Ding-Projects/harness repository and verify remote main.
+- [x] Publish three reviewed desktop captures in a separate public gallery and verify anonymous image delivery.
 - [ ] Build and publish the requested product landing page. Paused before authoring for the user's preservation closeout.
 - [ ] Configure and verify a hosted update feed and release automation.
 - [ ] Exercise installation and upgrades on a disposable operating-system account.
